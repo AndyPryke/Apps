@@ -1,0 +1,27 @@
+# Claude Code worktrees (temporary working copies, managed by Claude Code)
+.claude/worktrees/
+
+# -- Ignore macOS icon layout etc ---
+.DS_Store
+
+# -- Ignore Windows icon layout etc ---
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# --- Temporary directories ---
+tmp/
+
+# --- Scratch files ---
+foo.*
+
+# --- General Emacs Related Files ---
+
+# Compiled files
+*.elc
+
+# Auto-save and backup files
+*~
+\#*\#
+.\#*
+

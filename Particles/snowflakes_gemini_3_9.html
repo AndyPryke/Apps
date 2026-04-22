@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lattice / Snowflake</title>
+
+  <!-- Tailwind CDN (for className utilities) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- React & ReactDOM -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+  <!-- Matter.js physics -->
+  <script src="https://unpkg.com/matter-js@0.19.0/build/matter.min.js"></script>
+
+  <!-- Babel standalone (for JSX transform in the browser) -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    html, body, #root { margin: 0; padding: 0; height: 100%; }
+    canvas { touch-action: none; display: block; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useEffect, useRef, useState } = React;
+
+    const App = () => {
+      const sceneRef = useRef(null);
+      const engineRef = useRef(null);
+      const containerRef = useRef(null);
+      const renderRef = useRef(null);
+
+      const [stats, setStats] = useState({ particles: 0, goals: 0 });
+      const [gameStarted, setGameStarted] = useState(false);
+      const [showHelp, setShowHelp] = useState(false);
+      const [emitterX, setEmitterX] = useState(0.2);
+      const [isPaused, setIsPaused] = useState(false);
+
+      const [designerFaces, setDesignerFaces] = useState(['fixed', 'none', 'none', 'none', 'none', 'none']);
+
+      const SURFACE_PROPS = {
+        none:   { color: '#ffffff', label: 'Passive', desc: 'Neutral. Accepts bonds but does not initiate them.' },
+        fixed:  { color: '#3b82f6', label: 'Fixed', desc: 'Rigid link. Creates a stiff structural bond.' },
+        spring: { color: '#22c55e', label: 'Spring', desc: 'Elastic link. Allows bouncy mechanical motion.' },
+        void:   { color: '#475569', label: 'Void', desc: 'Non-stick. Rejects all bond attempts.' },
+        anchor: { color: '#eab308', label: 'Anchor', desc: 'Freezes particle on contact with ground.' }
+      };
+
+      const cycleFace = (index) => {
+        const keys = Object.keys(SURFACE_PROPS);
+        const currentIdx = keys.indexOf(designerFaces[index]);
+        const nextIdx = (currentIdx + 1) % keys.length;
+        const newFaces = [...designerFaces];
+        newFaces[index] = keys[nextIdx];
+        setDesignerFaces(newFaces);
+      };
+
+      const HEX_RADIUS = 12;
+      const BALL_RADIUS = 10;
+      const PHYSICS_SUBSTEPS = 8;
+
+      useEffect(() => {
+        if (!gameStarted || !containerRef.current) return;
+
+        const { Engine, Render, Bodies, Composite, Events, Constraint, Vector, Body } = Matter;
+
+        const engine = Engine.create({
+          enableSleeping: false,
+          positionIterations: 30,
+          velocityIterations: 30,
+          constraintIterations: 30
+        });
+
+        engineRef.current = engine;
+        const world = engine.world;
+
+        const width = containerRef.current.clientWidth;
+        const height = containerRef.current.clientHeight;
+
+        const render = Render.create({
+          element: sceneRef.current,
+          engine: engine,
+          options: {
+            width,
+            height,
+            wireframes: false,
+            background: '#020617',
+            pixelRatio: window.devicePixelRatio
+          },
+        });
+
+        renderRef.current = render;
+        Render.run(render);
+
+        let requestRef;
+        const update = () => {
+          if (!isPaused) {
+            const delta = 16.666 / PHYSICS_SUBSTEPS;
+            for (let i = 0; i < PHYSICS_SUBSTEPS; i++) {
+              Engine.update(engine, delta);
+            }
+          }
+          requestRef = requestAnimationFrame(update);
+        };
+        requestRef = requestAnimationFrame(update);
+
+        // Level Layout
+        const startPlatform = Bodies.rectangle(width * 0.2, height * 0.45, width * 0.4, 30, { isStatic: true, label: 'ground', friction: 0.1, render: { fillStyle: '#1e293b' } });
+        const goalPlatform = Bodies.rectangle(width * 0.8, height * 0.85, width * 0.4, 30, { isStatic: true, label: 'ground', friction: 0.1, render: { fillStyle: '#1e293b' } });
+        const goalSensor = Bodies.rectangle(width * 0.8, height * 0.8, width * 0.3, 10, { isStatic: true, isSensor: true, label: 'goal', render: { visible: false } });
+
+        Composite.add(world, [startPlatform, goalPlatform, goalSensor]);
+
+        // Ultra-Thin Hairline Rendering
+        Events.on(render, 'afterRender', () => {
+            const ctx = render.context;
+            const bodies = Composite.allBodies(world);
+            bodies.forEach(body => {
+                if (body.label === 'particle') {
+                    const faces = body.plugin.faces;
+                    const vertices = body.vertices;
+                    for (let i = 0; i < 6; i++) {
+                        ctx.beginPath();
+                        ctx.moveTo(vertices[i].x, vertices[i].y);
+                        ctx.lineTo(vertices[(i + 1) % 6].x, vertices[(i + 1) % 6].y);
+                        ctx.strokeStyle = SURFACE_PROPS[faces[i]].color;
+                        ctx.lineWidth = 0.8;
+                        ctx.stroke();
+                    }
+                }
+            });
+        });
+
+        // Precision Interaction Handler
+        Events.on(engine, 'collisionStart', (event) => {
+          event.pairs.forEach((pair) => {
+            const { bodyA, bodyB, separation } = pair;
+
+            const getFaceIndex = (body, other) => {
+              const diff = Vector.sub(other.position, body.position);
+              const angleBetween = Math.atan2(diff.y, diff.x);
+              const snappedAngle = Math.round(angleBetween / (Math.PI / 3)) * (Math.PI / 3);
+              const face = Math.round(((snappedAngle - body.angle) * (180 / Math.PI)) / 60) % 6;
+              return (Math.abs(face) + 6) % 6;
+            };
+
+            const handleInteraction = (source, target) => {
+              if (source.label !== 'particle') return;
+              const fIdx = getFaceIndex(source, target);
+              const type = source.plugin.faces[fIdx];
+
+              if (type === 'anchor' && !source.isStatic) {
+                if (target.label === 'ground' || (target.label === 'particle' && target.isStatic)) {
+                  if (separation > 0) {
+                     const normal = Vector.normalise(Vector.sub(source.position, target.position));
+                     Body.setPosition(source, Vector.add(source.position, Vector.mult(normal, separation)));
+                  }
+                  Body.setStatic(source, true);
+                  Body.setVelocity(source, { x: 0, y: 0 });
+                  Body.setAngularVelocity(source, 0);
+                  return;
+                }
+              }
+
+              if (target.label === 'particle') {
+                const tIdx = getFaceIndex(target, source);
+                const tType = target.plugin.faces[tIdx];
+                if (type === 'void' || tType === 'void') return;
+
+                let stiffness = 0;
+                if (type === 'fixed' || tType === 'fixed') stiffness = 1.0;
+                else if (type === 'spring' || tType === 'spring') stiffness = 0.2;
+
+                if (stiffness > 0) {
+                  const distance = Vector.magnitude(Vector.sub(source.position, target.position));
+                  if (distance < HEX_RADIUS * 3.2) {
+                    const bond = Constraint.create({
+                      bodyA: source, bodyB: target, length: HEX_RADIUS * 2, stiffness, damping: 0.1, render: { visible: false }
+                    });
+                    Composite.add(world, bond);
+                    if (stiffness === 1.0 && !target.isStatic) {
+                       const snap = Math.round(Math.atan2(target.position.y - source.position.y, target.position.x - source.position.x) / (Math.PI / 3)) * (Math.PI / 3);
+                       Body.setPosition(target, {
+                           x: source.position.x + Math.cos(snap) * (HEX_RADIUS * 2),
+                           y: source.position.y + Math.sin(snap) * (HEX_RADIUS * 2)
+                       });
+                    }
+                  }
+                }
+              }
+            };
+
+            handleInteraction(bodyA, bodyB);
+            handleInteraction(bodyB, bodyA);
+
+            if ((bodyA.label === 'goal' && bodyB.label === 'payload') || (bodyB.label === 'goal' && bodyA.label === 'payload')) {
+              Composite.remove(world, bodyA.label === 'payload' ? bodyA : bodyB);
+              setStats(s => ({ ...s, goals: s.goals + 1 }));
+            }
+          });
+        });
+
+        return () => {
+          cancelAnimationFrame(requestRef);
+          Engine.clear(engine);
+          Render.stop(render);
+          if (render.canvas) render.canvas.remove();
+        };
+      }, [gameStarted]);
+
+      const drop = () => {
+        if (!engineRef.current || !containerRef.current) return;
+        const width = containerRef.current.clientWidth;
+        const hex = Matter.Bodies.polygon(width * emitterX + (Math.random()*2-1), 110, 6, HEX_RADIUS, {
+          restitution: 0.1,
+          friction: 0.05,
+          frictionAir: 0.01,
+          label: 'particle',
+          angle: 0,
+          plugin: { faces: [...designerFaces] },
+          render: { fillStyle: 'transparent', strokeStyle: '#1e293b', lineWidth: 0.5 }
+        });
+        Matter.Composite.add(engineRef.current.world, hex);
+        setStats(s => ({ ...s, particles: s.particles + 1 }));
+      };
+
+      const spawnPayload = () => {
+        if (!engineRef.current) return;
+        const ball = Matter.Bodies.circle(40, 80, BALL_RADIUS, {
+          restitution: 0.4, label: 'payload', friction: 0.01,
+          render: { fillStyle: '#ec4899', strokeStyle: '#fff', lineWidth: 1 }
+        });
+        Matter.Composite.add(engineRef.current.world, ball);
+      };
+
+      return (
+        <div className="flex flex-col h-[100dvh] bg-slate-950 text-slate-100 overflow-hidden select-none relative">
+          <style>{`canvas { touch-action: none; display: block; }`}</style>
+
+          {/* HUD */}
+          <div className="flex justify-between items-center px-4 py-2 bg-slate-900 border-b border-slate-800 z-20 shadow-lg">
+            <div className="flex items-center gap-3">
+              <h1 className="font-black text-blue-500 text-[10px] tracking-widest uppercase italic">Snowflake v3.9</h1>
+              <button onClick={() => setShowHelp(true)} className="w-5 h-5 rounded-full bg-slate-800 border border-slate-700 text-[10px] font-bold text-slate-400 hover:text-white">?</button>
+            </div>
+            <div className="flex gap-4 font-mono text-[9px]">
+              <span className="text-pink-500 font-bold">{stats.goals} GOALS</span>
+              <span className="text-blue-400 font-bold border-l border-slate-800 pl-4">{stats.particles} ACTIVE</span>
+            </div>
+          </div>
+
+          {/* Help Modal */}
+          {showHelp && (
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-950/98 p-6 backdrop-blur-xl">
+               <div className="max-w-sm w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl">
+                  <h2 className="text-xl font-black mb-6 italic uppercase tracking-tighter text-blue-500 flex justify-between">Dictionary <button onClick={() => setShowHelp(false)}>X</button></h2>
+                  <div className="space-y-4 mb-8">
+                    {Object.entries(SURFACE_PROPS).map(([key, val]) => (
+                      <div key={key} className="flex gap-4 items-start">
+                        <div className="w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: val.color }} />
+                        <div><div className="font-black text-xs uppercase">{val.label}</div><div className="text-[10px] text-slate-500 mt-0.5">{val.desc}</div></div>
+                      </div>
+                    ))}
+                  </div>
+                  <button onClick={() => setShowHelp(false)} className="w-full py-4 bg-blue-600 rounded-2xl font-black text-sm">DISMISS</button>
+               </div>
+            </div>
+          )}
+
+          {/* Viewport */}
+          <div className="flex-1 relative min-h-0 bg-slate-950" ref={containerRef}
+               onClick={(e) => {
+                   if(!gameStarted || !containerRef.current) return;
+                   const rect = containerRef.current.getBoundingClientRect();
+                   if (e.clientY - rect.top < 100) setEmitterX((e.clientX - rect.left) / rect.width);
+               }}>
+            <div ref={sceneRef} className="w-full h-full" />
+            <div className="absolute top-0 left-0 w-full h-12 pointer-events-none">
+                <div className="absolute h-full w-[1px] bg-blue-500/30 transition-all duration-300" style={{ left: `${emitterX * 100}%` }}>
+                    <div className="absolute top-4 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-blue-500 rounded-full shadow-[0_0_10px_#3b82f6]" />
+                </div>
+            </div>
+
+            {!gameStarted && (
+              <div className="absolute inset-0 z-30 flex items-center justify-center bg-slate-950/95 p-8 text-center backdrop-blur-md">
+                <div className="max-w-xs">
+                  <h2 className="text-4xl font-black mb-4 tracking-tighter italic uppercase">Lattice v3.9</h2>
+                  <p className="text-slate-400 text-[11px] mb-8 leading-relaxed">High-precision particle construction. <br/>Shelf penetration bug resolved.</p>
+                  <button onClick={() => setGameStarted(true)} className="w-full py-5 bg-blue-600 rounded-3xl font-black text-xl active:scale-95 transition-all">INITIALIZE</button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Designer UI */}
+          <div className="bg-slate-900 border-t border-slate-800 p-4 pb-12 z-20 rounded-t-[2.5rem] shadow-2xl">
+            <div className="max-w-md mx-auto">
+              <div className="flex items-center gap-8 mb-6 px-4">
+                <div className="relative w-24 h-24 flex items-center justify-center">
+                  <div className="absolute w-10 h-10 bg-slate-800 rounded-full border border-slate-700 flex items-center justify-center text-[7px] font-black text-slate-600 italic">CORE</div>
+                  {[0, 1, 2, 3, 4, 5].map((i) => {
+                    const angle = (i * 60 - 30) * (Math.PI / 180);
+                    const x = Math.cos(angle) * 34;
+                    const y = Math.sin(angle) * 34;
+                    const type = designerFaces[i];
+                    return (
+                      <button key={i} onClick={() => cycleFace(i)} className={`absolute w-10 h-1 rounded-full border border-white/10 transition-all ${type !== 'none' ? 'scale-110 shadow-lg' : 'opacity-20'}`}
+                        style={{ left: `calc(50% + ${x}px)`, top: `calc(50% + ${y}px)`, transform: `translate(-50%, -50%) rotate(${i * 60}deg)`, backgroundColor: SURFACE_PROPS[type].color }}
+                      />
+                    );
+                  })}
+                </div>
+                <div className="flex-1">
+                   <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mb-4">
+                      {Object.entries(SURFACE_PROPS).map(([k,v])=>(
+                        <div key={k} className="flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full" style={{backgroundColor: v.color}} />
+                            <span className="text-[8px] font-black text-slate-500 uppercase tracking-tighter">{v.label}</span>
+                        </div>
+                      ))}
+                   </div>
+                   <p className="text-[9px] text-slate-500 font-bold leading-tight border-t border-slate-800 pt-3 italic tracking-tight">Tap edges to cycle logic. Hairline rendering.</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={drop} className="flex-[2] py-5 bg-white text-slate-950 rounded-2xl font-black text-xl active:scale-95 transition-all shadow-xl">DROP</button>
+                <button onClick={spawnPayload} className="flex-1 py-5 bg-pink-600 rounded-2xl flex items-center justify-center gap-2 font-black text-xs uppercase active:scale-95 transition-all shadow-lg shadow-pink-900/20"><div className="w-2.5 h-2.5 bg-white rounded-full shadow-inner" /> Ball</button>
+                <button onClick={() => window.location.reload()} className="px-4 py-5 bg-slate-800 rounded-2xl font-black text-[9px] uppercase text-slate-600 hover:text-white transition-colors">Reset</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
