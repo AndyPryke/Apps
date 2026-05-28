@@ -166,6 +166,54 @@ function HexTile({ rotation = 0, R = HEX_R, strokeWidth = 10, showOutline = true
   );
 }
 
+function HelpScreen({ onClose }) {
+  const sections = [
+    { title: "Drawing", items: [
+      "Tap an empty hex to place a tile",
+      "Tap a placed tile to rotate it",
+      "In erase mode, tap a tile to remove it",
+    ]},
+    { title: "Navigation", items: [
+      "Drag to pan the canvas",
+      "Pinch or scroll to zoom",
+      "Use + / − buttons to zoom",
+    ]},
+    { title: "Tile Design", items: [
+      "Tap the tile preview (bottom-left) to edit the curve pattern",
+      "Use the rotation arrows to set the angle for new tiles",
+    ]},
+    { title: "Tools", items: [
+      "Color — toggle path colour tracing (connected paths share a colour)",
+      "Fill — place tiles across the visible area",
+      "Erase / Place — switch between draw and erase modes",
+      "Clear — hold down to clear all tiles",
+      "💾 — save as PNG image or JSON project, or load a saved project",
+    ]},
+  ];
+  return (
+    <div style={{ position: "absolute", inset: 0, zIndex: 20, background: "#1a1a2e", display: "flex", flexDirection: "column", overflow: "auto" }}>
+      <div style={{ padding: "16px 16px 8px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ color: "#e8e4df", fontWeight: 700, fontSize: 16 }}>How to Use</div>
+        <button onClick={onClose} style={{ ...pillBtnStyle, color: "#e2b44d" }}>Close</button>
+      </div>
+      <div style={{ padding: "8px 20px 24px", display: "flex", flexDirection: "column", gap: 20 }}>
+        {sections.map(({ title, items }) => (
+          <div key={title}>
+            <div style={{ color: "#8a8680", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>{title}</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {items.map((item, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 12px", borderRadius: 8, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                  <span style={{ color: "#e2b44d", fontSize: 14, lineHeight: 1.4, flex: 1 }}>{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function TileSettingsScreen({ pattern, onSave, onCancel }) {
   const [lineMode, setLineMode] = useState(pattern.lineMode);
   const [curves, setCurves] = useState([...pattern.curves.map(c => [...c])]);
@@ -398,6 +446,7 @@ function App() {
   const [showFillMenu, setShowFillMenu] = useState(false);
   const [showSaveMenu, setShowSaveMenu] = useState(false);
   const [showTileSettings, setShowTileSettings] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const [showColors, setShowColors] = useState(true);
   const [clearProgress, setClearProgress] = useState(0);
   const clearAnimRef = useRef(null);
@@ -600,6 +649,7 @@ function App() {
       "--btn-bg": "#1e2a4a", "--danger": "#c0392b",
     }}>
       <input ref={fileInputRef} type="file" accept=".json" style={{ display: "none" }} onChange={handleLoadJson} />
+      {showHelp && <HelpScreen onClose={() => setShowHelp(false)} />}
       {showTileSettings && (
         <TileSettingsScreen pattern={tilePattern}
           onCancel={() => setShowTileSettings(false)}
@@ -695,6 +745,7 @@ function App() {
           </button>
           <button onClick={() => setShowFillMenu(true)} style={actionBtnStyle}>Fill</button>
           <button onClick={() => setShowSaveMenu(true)} style={actionBtnStyle}>💾</button>
+          <button onClick={() => setShowHelp(true)} style={actionBtnStyle}>?</button>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <button onClick={() => setMode(mode === "place" ? "erase" : "place")} style={Object.assign({}, actionBtnStyle, {
