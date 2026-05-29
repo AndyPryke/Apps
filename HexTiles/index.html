@@ -766,7 +766,7 @@ function App() {
             border: mode === "place" ? "2px solid var(--accent)" : "2px solid transparent", cursor: "pointer",
           }}>
             <svg viewBox="-46 -46 92 92" width={50} height={50}>
-              <HexTile rotation={currentRotation} R={40} strokeWidth={8} pattern={tilePattern} curveColors={null} />
+              <HexTile rotation={currentRotation} R={40} strokeWidth={8} pattern={tilePattern} curveColors={PATH_COLORS.slice(0, tilePattern.curves.length)} />
             </svg>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
