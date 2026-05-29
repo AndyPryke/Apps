@@ -786,16 +786,16 @@ function App() {
           <button onClick={toggleFullscreen} style={Object.assign({}, lsBtnStyle, {
             background: isFullscreen ? "#2a3a5a" : "var(--btn-bg)",
             borderColor: isFullscreen ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.08)",
-            fontSize: 16, flexShrink: 0,
+            fontSize: 16, flexShrink: 0, height: 28,
           })}>
             {isFullscreen ? "⊡" : "⛶"}
           </button>
           <div onClick={() => setShowTileSettings(true)} style={{
-            height: 56, flexShrink: 0, background: "rgba(0,0,0,0.2)", borderRadius: 10,
+            height: 48, flexShrink: 0, background: "rgba(0,0,0,0.2)", borderRadius: 10,
             display: "flex", alignItems: "center", justifyContent: "center",
             border: mode === "place" ? "2px solid var(--accent)" : "2px solid transparent", cursor: "pointer",
           }}>
-            <svg viewBox="-46 -46 92 92" width={46} height={46}>
+            <svg viewBox="-46 -46 92 92" width={40} height={40}>
               <HexTile rotation={currentRotation} R={40} strokeWidth={8} pattern={tilePattern} curveColors={PATH_COLORS.slice(0, tilePattern.curves.length)} />
             </svg>
           </div>
@@ -804,16 +804,21 @@ function App() {
             <button onClick={() => rotatePreview(1)} style={{ ...smallBtnStyle, flex: 1 }}>↻</button>
           </div>
           <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "2px 0" }} />
-          <button onClick={() => setShowColors(c => !c)} style={Object.assign({}, lsBtnStyle, {
-            background: showColors ? "#2a5540" : "var(--btn-bg)",
-            borderColor: showColors ? "#3a7a5a" : "rgba(255,255,255,0.08)",
-          })}>
-            {showColors ? "🎨" : "◐"}
-          </button>
-          <button onClick={() => setShowFillMenu(true)} style={lsBtnStyle}>Fill</button>
+          <div style={{ display: "flex", gap: 4 }}>
+            <button onClick={() => setShowColors(c => !c)} style={Object.assign({}, lsBtnStyle, {
+              flex: 1, width: "auto",
+              background: showColors ? "#2a5540" : "var(--btn-bg)",
+              borderColor: showColors ? "#3a7a5a" : "rgba(255,255,255,0.08)",
+            })}>
+              {showColors ? "🎨" : "◐"}
+            </button>
+            <button onClick={() => setShowFillMenu(true)} style={Object.assign({}, lsBtnStyle, { flex: 1, width: "auto", fontSize: 11 })}>Fill</button>
+          </div>
           <button onClick={() => setShowSaveMenu(true)} style={lsBtnStyle}>💾</button>
-          <button onClick={() => setShowHelp(true)} style={lsBtnStyle}>?</button>
-          <button onClick={() => setShowCredits(true)} style={Object.assign({}, lsBtnStyle, { color: "#e74c3c" })}>♥</button>
+          <div style={{ display: "flex", gap: 4 }}>
+            <button onClick={() => setShowHelp(true)} style={Object.assign({}, lsBtnStyle, { flex: 1, width: "auto" })}>?</button>
+            <button onClick={() => setShowCredits(true)} style={Object.assign({}, lsBtnStyle, { flex: 1, width: "auto", color: "#e74c3c" })}>♥</button>
+          </div>
           <div style={{ flex: 1 }} />
           <button onClick={() => setMode(mode === "place" ? "erase" : "place")} style={Object.assign({}, lsBtnStyle, {
             background: mode === "erase" ? "var(--danger)" : "var(--btn-bg)",
