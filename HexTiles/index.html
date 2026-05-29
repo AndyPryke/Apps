@@ -222,6 +222,33 @@ function HelpScreen({ onClose }) {
   );
 }
 
+function CreditsScreen({ onClose }) {
+  return (
+    <div style={{ position: "absolute", inset: 0, zIndex: 20, background: "#1a1a2e", display: "flex", flexDirection: "column", overflow: "auto" }}>
+      <div style={{ padding: "16px 16px 8px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ color: "#e8e4df", fontWeight: 700, fontSize: 16 }}>Credits</div>
+        <button onClick={onClose} style={{ ...pillBtnStyle, color: "#e2b44d" }}>Close</button>
+      </div>
+      <div style={{ padding: "16px 20px 32px", display: "flex", flexDirection: "column", gap: 20 }}>
+        <div style={{ color: "#e8e4df", fontSize: 15, fontWeight: 600 }}>Created by Andy Pryke.</div>
+        <div style={{ color: "#c8c4bf", fontSize: 14, lineHeight: 1.6 }}>
+          If you like this and want to say thanks, you could make the world a better place by smiling at someone, or complimenting them, or by helping a stranger.
+        </div>
+        <div style={{ color: "#e2b44d", fontSize: 14, lineHeight: 1.6, fontStyle: "italic" }}>
+          Did this give you more joy than a store bought coffee?
+        </div>
+        <div style={{ color: "#c8c4bf", fontSize: 14, lineHeight: 1.6 }}>
+          If you'd like to give money, even a very small donation to organisations like{" "}
+          <a href="https://www.oxfam.org" target="_blank" rel="noopener noreferrer" style={{ color: "#e2b44d" }}>Oxfam</a>
+          {" "}or{" "}
+          <a href="https://www.savethechildren.org" target="_blank" rel="noopener noreferrer" style={{ color: "#e2b44d" }}>Save the Children</a>
+          {" "}can transform the life of someone facing difficulties that most of us are lucky enough to never have to consider.
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function TileSettingsScreen({ pattern, onSave, onCancel }) {
   const [lineMode, setLineMode] = useState(pattern.lineMode);
   const [curves, setCurves] = useState([...pattern.curves.map(c => [...c])]);
@@ -455,6 +482,7 @@ function App() {
   const [showSaveMenu, setShowSaveMenu] = useState(false);
   const [showTileSettings, setShowTileSettings] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [showCredits, setShowCredits] = useState(false);
   const [showColors, setShowColors] = useState(true);
   const [clearProgress, setClearProgress] = useState(0);
   const clearAnimRef = useRef(null);
@@ -658,6 +686,7 @@ function App() {
     }}>
       <input ref={fileInputRef} type="file" accept=".json" style={{ display: "none" }} onChange={handleLoadJson} />
       {showHelp && <HelpScreen onClose={() => setShowHelp(false)} />}
+      {showCredits && <CreditsScreen onClose={() => setShowCredits(false)} />}
       {showTileSettings && (
         <TileSettingsScreen pattern={tilePattern}
           onCancel={() => setShowTileSettings(false)}
@@ -754,6 +783,7 @@ function App() {
           <button onClick={() => setShowFillMenu(true)} style={actionBtnStyle}>Fill</button>
           <button onClick={() => setShowSaveMenu(true)} style={actionBtnStyle}>💾</button>
           <button onClick={() => setShowHelp(true)} style={actionBtnStyle}>?</button>
+          <button onClick={() => setShowCredits(true)} style={actionBtnStyle}>♥</button>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <button onClick={() => setMode(mode === "place" ? "erase" : "place")} style={Object.assign({}, actionBtnStyle, {
