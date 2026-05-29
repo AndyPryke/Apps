@@ -783,7 +783,7 @@ function App() {
           <button onClick={() => setShowFillMenu(true)} style={actionBtnStyle}>Fill</button>
           <button onClick={() => setShowSaveMenu(true)} style={actionBtnStyle}>💾</button>
           <button onClick={() => setShowHelp(true)} style={actionBtnStyle}>?</button>
-          <button onClick={() => setShowCredits(true)} style={actionBtnStyle}>♥</button>
+          <button onClick={() => setShowCredits(true)} style={Object.assign({}, actionBtnStyle, { color: "#e74c3c" })}>♥</button>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <button onClick={() => setMode(mode === "place" ? "erase" : "place")} style={Object.assign({}, actionBtnStyle, {
