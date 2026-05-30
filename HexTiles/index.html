@@ -781,27 +781,27 @@ function App() {
           background: "var(--panel-bg)", borderRight: "1px solid rgba(255,255,255,0.06)",
           padding: `8px max(8px, env(safe-area-inset-left)) 8px 8px`,
           display: "flex", flexDirection: "column", alignItems: "stretch", gap: 6,
-          width: 76, flexShrink: 0, order: -1, overflow: "hidden",
+          width: "clamp(76px, 14vh, 120px)", flexShrink: 0, order: -1, overflow: "hidden",
         }}>
           <button onClick={toggleFullscreen} style={Object.assign({}, lsBtnStyle, {
             background: isFullscreen ? "#2a3a5a" : "var(--btn-bg)",
             borderColor: isFullscreen ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.08)",
-            fontSize: 16, flexShrink: 0, height: 28,
+            fontSize: "clamp(12px, 2.2vh, 18px)", flexShrink: 0, height: "clamp(24px, 4vh, 38px)",
           })}>
             {isFullscreen ? "⊡" : "⛶"}
           </button>
           <div onClick={() => setShowTileSettings(true)} style={{
-            height: 48, flexShrink: 0, background: "rgba(0,0,0,0.2)", borderRadius: 10,
+            height: "clamp(44px, 10vh, 80px)", flexShrink: 0, background: "rgba(0,0,0,0.2)", borderRadius: 10,
             display: "flex", alignItems: "center", justifyContent: "center",
             border: mode === "place" ? "2px solid var(--accent)" : "2px solid transparent", cursor: "pointer",
           }}>
-            <svg viewBox="-46 -46 92 92" width={40} height={40}>
+            <svg viewBox="-46 -46 92 92" style={{ width: "clamp(36px, 8vh, 66px)", height: "clamp(36px, 8vh, 66px)" }}>
               <HexTile rotation={currentRotation} R={40} strokeWidth={8} pattern={tilePattern} curveColors={PATH_COLORS.slice(0, tilePattern.curves.length)} />
             </svg>
           </div>
           <div style={{ display: "flex", gap: 4 }}>
-            <button onClick={() => rotatePreview(-1)} style={{ ...smallBtnStyle, flex: 1 }}>↺</button>
-            <button onClick={() => rotatePreview(1)} style={{ ...smallBtnStyle, flex: 1 }}>↻</button>
+            <button onClick={() => rotatePreview(-1)} style={{ ...smallBtnStyle, flex: 1, height: "clamp(30px, 5vh, 46px)", fontSize: "clamp(13px, 2vh, 19px)" }}>↺</button>
+            <button onClick={() => rotatePreview(1)} style={{ ...smallBtnStyle, flex: 1, height: "clamp(30px, 5vh, 46px)", fontSize: "clamp(13px, 2vh, 19px)" }}>↻</button>
           </div>
           <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "2px 0" }} />
           <div style={{ display: "flex", gap: 4 }}>
@@ -919,8 +919,8 @@ const menuBtnStyle = { width: "100%", padding: "12px 16px", borderRadius: 10,
   border: "1px solid rgba(255,255,255,0.08)", background: "#1e2a4a", color: "#e8e4df",
   fontSize: 14, fontWeight: 500, cursor: "pointer", textAlign: "left" };
 const cancelMenuBtnStyle = Object.assign({}, menuBtnStyle, { color: "#8a8680", background: "transparent" });
-const lsBtnStyle = { width: "100%", height: 36, padding: "0 4px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)",
-  background: "#1e2a4a", color: "#e8e4df", fontSize: 13, fontWeight: 600,
+const lsBtnStyle = { width: "100%", height: "clamp(32px, 5.5vh, 50px)", padding: "0 4px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)",
+  background: "#1e2a4a", color: "#e8e4df", fontSize: "clamp(11px, 1.8vh, 16px)", fontWeight: 600,
   cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
   WebkitTapHighlightColor: "transparent", flexShrink: 0 };
 
