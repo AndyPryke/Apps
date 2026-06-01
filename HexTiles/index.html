@@ -351,7 +351,7 @@ function TileSettingsScreen({ pattern, onSave, onCancel }) {
             fill="#e8e4df" stroke="#b8b4af" strokeWidth={2} />
           {curves.map(([a, b], idx) => (
             <path key={idx} d={makePath(verts, a, b, lineMode)} fill="none"
-              stroke={PATH_COLORS[idx % PATH_COLORS.length]} strokeWidth={8} strokeLinecap="round"
+              stroke={PATH_COLORS[idx % PATH_COLORS.length]} strokeWidth={lineWidth * 2.5} strokeLinecap="round"
               onClick={() => removeCurve(idx)} style={{ cursor: "pointer" }} />
           ))}
           {sidePositions.map(({ side, x, y, mx, my }) => {
