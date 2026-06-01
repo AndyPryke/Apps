@@ -25,9 +25,19 @@
 <script type="text/babel">
 const { useState, useEffect, useCallback, useRef, useMemo } = React;
 
-const APP_VERSION = "1.0";
+const APP_VERSION = "1.1";
 
 const CHANGELOG = [
+  {
+    version: "1.1",
+    date: "2026-05-31",
+    items: [
+      "Change line width in the tile design screen.",
+      "Help screen redesigned with flowing layout.",
+      "Set a custom filename when saving.",
+      "Fixed credits button cut off on narrow screens.",
+    ],
+  },
   {
     version: "1.0",
     date: "2026-05-30",
@@ -38,7 +48,7 @@ const CHANGELOG = [
 const SQRT3 = Math.sqrt(3);
 const HEX_R = 40;
 
-const DEFAULT_PATTERN = { curves: [[1,3],[2,4],[5,6]], lineMode: "curved" };
+const DEFAULT_PATTERN = { curves: [[1,3],[2,4],[5,6]], lineMode: "curved", lineWidth: 10 };
 
 function hexVertices(R) {
   return [
@@ -224,10 +234,11 @@ function HelpScreen({ onClose, onShowChangelog }) {
         {sections.map(({ title, items }) => (
           <div key={title}>
             <div style={{ color: "#8a8680", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>{title}</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               {items.map((item, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 12px", borderRadius: 8, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>
-                  <span style={{ color: "#e2b44d", fontSize: 14, lineHeight: 1.4, flex: 1 }}>{item}</span>
+                <div key={i} style={{ color: "#c8c4bf", fontSize: 14, lineHeight: 1.6, display: "flex", gap: 8 }}>
+                  <span style={{ color: "#e2b44d", flexShrink: 0 }}>•</span>
+                  <span>{item}</span>
                 </div>
               ))}
             </div>
@@ -295,12 +306,12 @@ function ChangelogScreen({ onClose }) {
 
 function TileSettingsScreen({ pattern, onSave, onCancel }) {
   const [lineMode, setLineMode] = useState(pattern.lineMode);
+  const [lineWidth, setLineWidth] = useState(pattern.lineWidth ?? 10);
   const [curves, setCurves] = useState([...pattern.curves.map(c => [...c])]);
   const [selectedSide, setSelectedSide] = useState(null);
 
   const R = 100;
   const verts = hexVertices(R);
-  const assigned = new Set(curves.flat());
 
   const handleSideTap = (side) => {
     if (selectedSide === null) { setSelectedSide(side); }
@@ -331,7 +342,7 @@ function TileSettingsScreen({ pattern, onSave, onCancel }) {
       <div style={{ padding: "16px 16px 8px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <button onClick={onCancel} style={{ ...pillBtnStyle, color: "#8a8680" }}>Cancel</button>
         <div style={{ color: "#e8e4df", fontWeight: 700, fontSize: 16 }}>Tile Design</div>
-        <button onClick={() => isValid && onSave({ curves, lineMode })}
+        <button onClick={() => isValid && onSave({ curves, lineMode, lineWidth })}
           style={{ ...pillBtnStyle, opacity: isValid ? 1 : 0.35, color: "#e2b44d" }}>Save</button>
       </div>
       <div style={{ display: "flex", justifyContent: "center", padding: "12px 0" }}>
@@ -340,7 +351,7 @@ function TileSettingsScreen({ pattern, onSave, onCancel }) {
             fill="#e8e4df" stroke="#b8b4af" strokeWidth={2} />
           {curves.map(([a, b], idx) => (
             <path key={idx} d={makePath(verts, a, b, lineMode)} fill="none"
-              stroke={PATH_COLORS[idx % PATH_COLORS.length]} strokeWidth={8} strokeLinecap="round"
+              stroke={PATH_COLORS[idx % PATH_COLORS.length]} strokeWidth={lineWidth * 2.5} strokeLinecap="round"
               onClick={() => removeCurve(idx)} style={{ cursor: "pointer" }} />
           ))}
           {sidePositions.map(({ side, x, y, mx, my }) => {
@@ -374,7 +385,7 @@ function TileSettingsScreen({ pattern, onSave, onCancel }) {
           </div>
         ))}
       </div>
-      <div style={{ padding: "8px 20px 20px" }}>
+      <div style={{ padding: "8px 20px 16px" }}>
         <div style={{ color: "#8a8680", fontSize: 12, fontWeight: 600, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>Line Style</div>
         <div style={{ display: "flex", gap: 8 }}>
           {["curved", "straight"].map(m => (
@@ -388,11 +399,20 @@ function TileSettingsScreen({ pattern, onSave, onCancel }) {
           ))}
         </div>
       </div>
+      <div style={{ padding: "0 20px 20px" }}>
+        <div style={{ color: "#8a8680", fontSize: 12, fontWeight: 600, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>Line Width</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <input type="range" min={2} max={20} step={1} value={lineWidth}
+            onChange={e => setLineWidth(Number(e.target.value))}
+            style={{ flex: 1, accentColor: "#e2b44d" }} />
+          <span style={{ color: "#e8e4df", fontSize: 14, minWidth: 24, textAlign: "right" }}>{lineWidth}</span>
+        </div>
+      </div>
       <div style={{ padding: "0 20px 24px", display: "flex", justifyContent: "center" }}>
         <div style={{ background: "rgba(0,0,0,0.2)", borderRadius: 12, padding: 12, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
           <div style={{ color: "#8a8680", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1 }}>Preview</div>
           <svg viewBox="-50 -50 100 100" width={90} height={90}>
-            <HexTile rotation={0} R={HEX_R} strokeWidth={8} pattern={{ curves, lineMode }} curveColors={null} />
+            <HexTile rotation={0} R={HEX_R} strokeWidth={lineWidth} pattern={{ curves, lineMode, lineWidth }} curveColors={null} />
           </svg>
         </div>
       </div>
@@ -459,6 +479,7 @@ function getTilesBBox(tiles) {
 function buildExportSvg(tiles, colorMap, showColors, pattern) {
   const bbox = getTilesBBox(tiles);
   const tileFill = "#e8e4df", tileStroke = "#b8b4af", defColor = "#5a5550";
+  const lineW = pattern.lineWidth ?? 10;
   let paths = "";
   for (const [key, tile] of Object.entries(tiles)) {
     const { x, y } = axialToPixel(tile.q, tile.r, HEX_R);
@@ -472,8 +493,8 @@ function buildExportSvg(tiles, colorMap, showColors, pattern) {
     curvePaths.forEach((d, ci) => {
       let color = defColor;
       if (showColors) { const idx = colorMap[`${key}:${ci}`]; if (idx !== undefined) color = PATH_COLORS[idx]; }
-      const offsetD = d.replace(/([-\d.]+) ([-\d.]+)/g, (_, xv, yv) => `${parseFloat(xv) + x} ${parseFloat(yv) + y}`);
-      paths += `<path d="${offsetD}" fill="none" stroke="${color}" stroke-width="10" stroke-linecap="round"/>`;
+      const offsetD = d.replace(/([\-\d.]+) ([\-\d.]+)/g, (_, xv, yv) => `${parseFloat(xv) + x} ${parseFloat(yv) + y}`);
+      paths += `<path d="${offsetD}" fill="none" stroke="${color}" stroke-width="${lineW}" stroke-linecap="round"/>`;
     });
   }
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${bbox.x} ${bbox.y} ${bbox.w} ${bbox.h}" width="${Math.round(bbox.w * 3)}" height="${Math.round(bbox.h * 3)}"><rect x="${bbox.x}" y="${bbox.y}" width="${bbox.w}" height="${bbox.h}" fill="${tileFill}"/>${paths}</svg>`;
@@ -485,7 +506,7 @@ function downloadBlob(blob, filename) {
   document.body.appendChild(a); a.click();
   setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
 }
-function savePng(tiles, colorMap, showColors, pattern) {
+function savePng(tiles, colorMap, showColors, pattern, filename = "hex_tiles") {
   const svgStr = buildExportSvg(tiles, colorMap, showColors, pattern);
   const bbox = getTilesBBox(tiles);
   const scale = 3, w = Math.round(bbox.w * scale), h = Math.round(bbox.h * scale);
@@ -498,13 +519,13 @@ function savePng(tiles, colorMap, showColors, pattern) {
     const ctx = canvas.getContext("2d");
     ctx.fillStyle = "#e8e4df"; ctx.fillRect(0, 0, w, h);
     ctx.drawImage(img, 0, 0, w, h);
-    canvas.toBlob(pngBlob => { downloadBlob(pngBlob, "hex_tiles.png"); URL.revokeObjectURL(url); }, "image/png");
+    canvas.toBlob(pngBlob => { downloadBlob(pngBlob, `${filename}.png`); URL.revokeObjectURL(url); }, "image/png");
   };
   img.src = url;
 }
-function saveJson(tiles, viewBox, showColors, pattern) {
-  const data = { version: 2, tiles, viewBox, showColors, pattern };
-  downloadBlob(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }), "hex_tiles.json");
+function saveJson(tiles, viewBox, showColors, pattern, filename = "hex_tiles") {
+  const data = { version: 3, tiles, viewBox, showColors, pattern };
+  downloadBlob(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }), `${filename}.json`);
 }
 
 const ACTIVE_ZONE = 0.82;
@@ -514,6 +535,7 @@ function App() {
   const [currentRotation, setCurrentRotation] = useState(0);
   const [mode, setMode] = useState("place");
   const [tilePattern, setTilePattern] = useState(DEFAULT_PATTERN);
+  const [saveName, setSaveName] = useState("hex_tiles");
   const svgRef = useRef(null);
   const [viewBox, setViewBox] = useState({ x: -180, y: -180, w: 360, h: 360 });
   const panStart = useRef(null);
@@ -573,14 +595,14 @@ function App() {
 
   const handleSavePng = useCallback(() => {
     if (Object.keys(tiles).length === 0) return;
-    savePng(tiles, showColors ? colorMap : {}, showColors, tilePattern);
+    savePng(tiles, showColors ? colorMap : {}, showColors, tilePattern, saveName || "hex_tiles");
     setShowSaveMenu(false);
-  }, [tiles, colorMap, showColors, tilePattern]);
+  }, [tiles, colorMap, showColors, tilePattern, saveName]);
 
   const handleSaveJson = useCallback(() => {
-    saveJson(tiles, viewBox, showColors, tilePattern);
+    saveJson(tiles, viewBox, showColors, tilePattern, saveName || "hex_tiles");
     setShowSaveMenu(false);
-  }, [tiles, viewBox, showColors, tilePattern]);
+  }, [tiles, viewBox, showColors, tilePattern, saveName]);
 
   const handleLoadJson = useCallback((e) => {
     const file = e.target.files && e.target.files[0];
@@ -593,7 +615,7 @@ function App() {
           setTiles(data.tiles);
           if (data.viewBox) setViewBox(data.viewBox);
           if (data.showColors !== undefined) setShowColors(data.showColors);
-          if (data.pattern) setTilePattern(data.pattern);
+          if (data.pattern) setTilePattern({ lineWidth: 10, ...data.pattern });
         }
       } catch (err) { console.error("Load failed:", err); }
     };
@@ -782,7 +804,7 @@ function App() {
             const { x, y } = axialToPixel(tile.q, tile.r, HEX_R);
             return (
               <g key={key} transform={`translate(${x},${y})`}>
-                <HexTile rotation={tile.rotation} R={HEX_R} pattern={tilePattern} curveColors={getCurveColors(key)} />
+                <HexTile rotation={tile.rotation} R={HEX_R} strokeWidth={tilePattern.lineWidth ?? 10} pattern={tilePattern} curveColors={getCurveColors(key)} />
               </g>
             );
           })}
@@ -811,6 +833,18 @@ function App() {
           <div style={overlayStyle} onClick={() => setShowSaveMenu(false)}>
             <div style={modalStyle} onClick={e => e.stopPropagation()}>
               <div style={modalTitleStyle}>Save / Load</div>
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ color: "#8a8680", fontSize: 12, fontWeight: 600, marginBottom: 6 }}>File name</div>
+                <input
+                  value={saveName}
+                  onChange={e => setSaveName(e.target.value)}
+                  placeholder="hex_tiles"
+                  style={{
+                    width: "100%", padding: "8px 10px", borderRadius: 8,
+                    border: "1px solid rgba(255,255,255,0.12)", background: "rgba(0,0,0,0.3)",
+                    color: "#e8e4df", fontSize: 14, outline: "none",
+                  }} />
+              </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 <button onClick={handleSavePng} disabled={!Object.keys(tiles).length}
                   style={Object.assign({}, menuBtnStyle, { opacity: Object.keys(tiles).length ? 1 : 0.4 })}>📷 Save as PNG image</button>
@@ -842,7 +876,7 @@ function App() {
             border: mode === "place" ? "2px solid var(--accent)" : "2px solid transparent", cursor: "pointer",
           }}>
             <svg viewBox="-46 -46 92 92" style={{ width: "clamp(36px, 8vh, 66px)", height: "clamp(36px, 8vh, 66px)" }}>
-              <HexTile rotation={currentRotation} R={40} strokeWidth={8} pattern={tilePattern} curveColors={PATH_COLORS.slice(0, tilePattern.curves.length)} />
+              <HexTile rotation={currentRotation} R={40} strokeWidth={tilePattern.lineWidth ?? 10} pattern={tilePattern} curveColors={PATH_COLORS.slice(0, tilePattern.curves.length)} />
             </svg>
           </div>
           <div style={{ display: "flex", gap: 4 }}>
@@ -892,31 +926,32 @@ function App() {
           padding: "10px 12px max(10px, env(safe-area-inset-bottom))",
           display: "flex", flexDirection: "column", gap: 8,
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <div onClick={() => setShowTileSettings(true)} style={{
               width: 58, height: 58, flexShrink: 0, background: "rgba(0,0,0,0.2)", borderRadius: 12,
               display: "flex", alignItems: "center", justifyContent: "center",
               border: mode === "place" ? "2px solid var(--accent)" : "2px solid transparent", cursor: "pointer",
             }}>
               <svg viewBox="-46 -46 92 92" width={50} height={50}>
-                <HexTile rotation={currentRotation} R={40} strokeWidth={8} pattern={tilePattern} curveColors={PATH_COLORS.slice(0, tilePattern.curves.length)} />
+                <HexTile rotation={currentRotation} R={40} strokeWidth={tilePattern.lineWidth ?? 10} pattern={tilePattern} curveColors={PATH_COLORS.slice(0, tilePattern.curves.length)} />
               </svg>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4, flexShrink: 0 }}>
               <button onClick={() => rotatePreview(-1)} style={smallBtnStyle}>↺</button>
               <button onClick={() => rotatePreview(1)} style={smallBtnStyle}>↻</button>
             </div>
-            <div style={{ flex: 1 }} />
-            <button onClick={() => setShowColors(c => !c)} style={Object.assign({}, actionBtnStyle, {
-              background: showColors ? "#2a5540" : "var(--btn-bg)",
-              borderColor: showColors ? "#3a7a5a" : "rgba(255,255,255,0.08)",
-            })}>
-              {showColors ? "🎨" : "◐"} Color
-            </button>
-            <button onClick={() => setShowFillMenu(true)} style={actionBtnStyle}>Fill</button>
-            <button onClick={() => setShowSaveMenu(true)} style={actionBtnStyle}>💾</button>
-            <button onClick={() => setShowHelp(true)} style={actionBtnStyle}>?</button>
-            <button onClick={() => setShowCredits(true)} style={Object.assign({}, actionBtnStyle, { color: "#e74c3c" })}>♥</button>
+            <div style={{ flex: 1, display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end", alignItems: "center" }}>
+              <button onClick={() => setShowColors(c => !c)} style={Object.assign({}, ptBtnStyle, {
+                background: showColors ? "#2a5540" : "var(--btn-bg)",
+                borderColor: showColors ? "#3a7a5a" : "rgba(255,255,255,0.08)",
+              })}>
+                {showColors ? "🎨" : "◐"}
+              </button>
+              <button onClick={() => setShowFillMenu(true)} style={ptBtnStyle}>Fill</button>
+              <button onClick={() => setShowSaveMenu(true)} style={ptBtnStyle}>💾</button>
+              <button onClick={() => setShowHelp(true)} style={ptBtnStyle}>?</button>
+              <button onClick={() => setShowCredits(true)} style={Object.assign({}, ptBtnStyle, { color: "#e74c3c" })}>♥</button>
+            </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <button onClick={() => setMode(mode === "place" ? "erase" : "place")} style={Object.assign({}, actionBtnStyle, {
@@ -961,6 +996,10 @@ const actionBtnStyle = { height: 38, padding: "0 12px", borderRadius: 8, border:
   background: "#1e2a4a", color: "#e8e4df", fontSize: 13, fontWeight: 600,
   cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
   WebkitTapHighlightColor: "transparent" };
+const ptBtnStyle = { height: 38, padding: "0 10px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.08)",
+  background: "#1e2a4a", color: "#e8e4df", fontSize: 13, fontWeight: 600,
+  cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
+  WebkitTapHighlightColor: "transparent", flexShrink: 0 };
 const menuBtnStyle = { width: "100%", padding: "12px 16px", borderRadius: 10,
   border: "1px solid rgba(255,255,255,0.08)", background: "#1e2a4a", color: "#e8e4df",
   fontSize: 14, fontWeight: 500, cursor: "pointer", textAlign: "left" };

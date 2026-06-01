@@ -2,11 +2,11 @@
 
 JSON files (`.json`) saved and loaded via the 💾 button.
 
-## Current Format — Version 2
+## Current Format — Version 3
 
 ```json
 {
-  "version": 2,
+  "version": 3,
   "tiles": {
     "0,0": { "q": 0, "r": 0, "rotation": 0 },
     "1,0": { "q": 1, "r": 0, "rotation": 3 }
@@ -15,7 +15,8 @@ JSON files (`.json`) saved and loaded via the 💾 button.
   "showColors": true,
   "pattern": {
     "curves": [[1, 3], [2, 4], [5, 6]],
-    "lineMode": "curved"
+    "lineMode": "curved",
+    "lineWidth": 10
   }
 }
 ```
@@ -28,12 +29,13 @@ JSON files (`.json`) saved and loaded via the 💾 button.
 | `tiles` | object | Map of `"q,r"` string keys to tile objects. `q` and `r` are axial hex coordinates; `rotation` is 0–5 (each step = 60°). |
 | `viewBox` | object | SVG viewport state: `x`, `y`, `w`, `h` in canvas units. |
 | `showColors` | boolean | Whether connected-path colour tracing is enabled. |
-| `pattern` | object | Active tile curve design. `curves` is an array of exactly 3 `[sideA, sideB]` pairs (sides numbered 1–6). `lineMode` is `"curved"` or `"straight"`. |
+| `pattern` | object | Active tile curve design. `curves` is an array of exactly 3 `[sideA, sideB]` pairs (sides numbered 1–6). `lineMode` is `"curved"` or `"straight"`. `lineWidth` is the stroke width in canvas units (2–20, default 10). |
 
 ## Version History
 
 | Version | Changes |
 |---------|---------|
+| 3 | Added `lineWidth` to `pattern`. |
 | 2 | Added `showColors` and `pattern`. First version requiring backwards compatibility. |
 
 ## Compatibility Rules
