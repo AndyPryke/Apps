@@ -25,9 +25,19 @@
 <script type="text/babel">
 const { useState, useEffect, useCallback, useRef, useMemo } = React;
 
-const APP_VERSION = "1.1";
+const APP_VERSION = "1.2";
 
 const CHANGELOG = [
+  {
+    version: "1.2",
+    date: "2026-06-02",
+    items: [
+      "Startup tip with link to help (can be disabled in settings).",
+      "Path count and longest path length shown on main screen.",
+      "Unlimited zoom out option (⚠️ advanced, tile design screen).",
+      "Link to prior versions from help screen.",
+    ],
+  },
   {
     version: "1.1",
     date: "2026-05-31",
@@ -45,8 +55,24 @@ const CHANGELOG = [
   },
 ];
 
+const TIPS = [
+  "Tap an empty hex to place a tile.",
+  "Tap a placed tile to rotate it.",
+  "In erase mode, tap a tile to remove it.",
+  "Drag to pan the canvas; pinch or scroll to zoom.",
+  "Tap the tile preview (bottom-left) to edit the curve pattern.",
+  "Color mode shows connected paths sharing the same colour.",
+  "Fill places tiles across the entire visible area.",
+  "Hold the Clear button to reset all tiles.",
+  "Use the rotation arrows to set the angle for new tiles.",
+  "Save your design as a PNG image or a JSON project file.",
+];
+
 const SQRT3 = Math.sqrt(3);
 const HEX_R = 40;
+// Safe maximum viewBox based on float64 hex coordinate precision (~9e14 SVG units theoretical limit).
+const MAX_VIEWBOX_NORMAL = 4000;
+const MAX_VIEWBOX_UNLIMITED = Number.MAX_SAFE_INTEGER;
 
 const DEFAULT_PATTERN = { curves: [[1,3],[2,4],[5,6]], lineMode: "curved", lineWidth: 10 };
 
@@ -130,6 +156,7 @@ function traceAllPaths(tiles, pattern) {
     }
     return null;
   }
+  let pathCount = 0; let maxPathLength = 0;
   const visited = new Set();
   const colorMap = {};
   for (const [tileKey, td] of Object.entries(tileData)) {
@@ -160,10 +187,13 @@ function traceAllPaths(tiles, pattern) {
         hash = ((hash << 5) - hash + hashStr.charCodeAt(i)) | 0;
       }
       const colorIdx = ((hash % PATH_COLORS.length) + PATH_COLORS.length) % PATH_COLORS.length;
+      pathCount++;
+      const tileCount = new Set(path.map(id => id.split(":")[0])).size;
+      if (tileCount > maxPathLength) maxPathLength = tileCount;
       for (const id of path) { colorMap[id] = colorIdx; }
     }
   }
-  return colorMap;
+  return { colorMap, pathCount, maxPathLength };
 }
 
 const PATH_COLORS = [
@@ -191,6 +221,42 @@ function HexTile({ rotation = 0, R = HEX_R, strokeWidth = 10, showOutline = true
           strokeWidth={strokeWidth} strokeLinecap="round" />
       ))}
     </g>
+  );
+}
+
+function StartupModal({ onClose, onOpenHelp }) {
+  const [dontShow, setDontShow] = useState(false);
+  const tip = useMemo(() => TIPS[Math.floor(Math.random() * TIPS.length)], []);
+  const handleClose = () => {
+    if (dontShow) localStorage.setItem("hextiles_hideStartup", "1");
+    onClose();
+  };
+  return (
+    <div style={{ position: "absolute", inset: 0, zIndex: 30, background: "rgba(0,0,0,0.7)",
+      display: "flex", alignItems: "center", justifyContent: "center" }} onClick={handleClose}>
+      <div style={{ background: "#16213e", borderRadius: 16, padding: 20, minWidth: 260, maxWidth: 340, margin: 16,
+        border: "1px solid rgba(255,255,255,0.1)" }} onClick={e => e.stopPropagation()}>
+        <div style={{ color: "#e8e4df", fontSize: 16, fontWeight: 700, marginBottom: 14 }}>Hex Tile Designer</div>
+        <div style={{ color: "#8a8680", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Tip</div>
+        <div style={{ color: "#c8c4bf", fontSize: 14, lineHeight: 1.6, marginBottom: 16, display: "flex", gap: 8 }}>
+          <span style={{ color: "#e2b44d", flexShrink: 0 }}>•</span>
+          <span>{tip}</span>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
+          <button onClick={() => { handleClose(); onOpenHelp(); }} style={{ width: "100%", padding: "11px 16px", borderRadius: 10,
+            border: "1px solid rgba(255,255,255,0.08)", background: "#1e2a4a", color: "#e8e4df",
+            fontSize: 14, fontWeight: 500, cursor: "pointer", textAlign: "left" }}>📖 Open Help</button>
+          <button onClick={handleClose} style={{ width: "100%", padding: "11px 16px", borderRadius: 10,
+            border: "1px solid rgba(255,255,255,0.08)", background: "#1e2a4a", color: "#e8e4df",
+            fontSize: 14, fontWeight: 500, cursor: "pointer", textAlign: "left" }}>Got it</button>
+        </div>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+          <input type="checkbox" checked={dontShow} onChange={e => setDontShow(e.target.checked)}
+            style={{ accentColor: "#e2b44d", width: 16, height: 16 }} />
+          <span style={{ color: "#8a8680", fontSize: 13 }}>Don't show this at startup</span>
+        </label>
+      </div>
+    </div>
   );
 }
 
@@ -244,6 +310,13 @@ function HelpScreen({ onClose, onShowChangelog }) {
             </div>
           </div>
         ))}
+        <div style={{ color: "#8a8680", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Prior Versions</div>
+        <div style={{ color: "#c8c4bf", fontSize: 14, lineHeight: 1.6, display: "flex", gap: 8 }}>
+          <span style={{ color: "#e2b44d", flexShrink: 0 }}>•</span>
+          <a href="https://github.com/AndyPryke/Apps/blob/main/HexTiles/PriorVersions.md"
+            target="_blank" rel="noopener noreferrer"
+            style={{ color: "#e2b44d" }}>Download older versions of Hex Tile Designer</a>
+        </div>
       </div>
     </div>
   );
@@ -304,7 +377,7 @@ function ChangelogScreen({ onClose }) {
   );
 }
 
-function TileSettingsScreen({ pattern, onSave, onCancel }) {
+function TileSettingsScreen({ pattern, onSave, onCancel, unlimitedZoom, onUnlimitedZoomChange }) {
   const [lineMode, setLineMode] = useState(pattern.lineMode);
   const [lineWidth, setLineWidth] = useState(pattern.lineWidth ?? 10);
   const [curves, setCurves] = useState([...pattern.curves.map(c => [...c])]);
@@ -415,6 +488,19 @@ function TileSettingsScreen({ pattern, onSave, onCancel }) {
             <HexTile rotation={0} R={HEX_R} strokeWidth={lineWidth} pattern={{ curves, lineMode, lineWidth }} curveColors={null} />
           </svg>
         </div>
+      </div>
+      <div style={{ padding: "0 20px 28px" }}>
+        <div style={{ color: "#8a8680", fontSize: 12, fontWeight: 600, marginBottom: 10, textTransform: "uppercase", letterSpacing: 1 }}>Advanced</div>
+        <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer" }}>
+          <input type="checkbox" checked={unlimitedZoom} onChange={e => onUnlimitedZoomChange(e.target.checked)}
+            style={{ accentColor: "#e2b44d", width: 16, height: 16, marginTop: 2, flexShrink: 0 }} />
+          <div>
+            <div style={{ color: "#e8e4df", fontSize: 14 }}>⚠️ Unlimited zoom out</div>
+            <div style={{ color: "#8a8680", fontSize: 12, marginTop: 3, lineHeight: 1.5 }}>
+              At your own risk — may cause rendering issues at extreme zoom levels.
+            </div>
+          </div>
+        </label>
       </div>
     </div>
   );
@@ -551,6 +637,10 @@ function App() {
   const [showChangelog, setShowChangelog] = useState(false);
   const [showCredits, setShowCredits] = useState(false);
   const [showColors, setShowColors] = useState(true);
+  const [unlimitedZoom, setUnlimitedZoom] = useState(false);
+  const [showStartup, setShowStartup] = useState(
+    () => !localStorage.getItem("hextiles_hideStartup")
+  );
   const [clearProgress, setClearProgress] = useState(0);
   const clearAnimRef = useRef(null);
   const clearStartTime = useRef(null);
@@ -580,10 +670,10 @@ function App() {
     }
   }
 
-  const colorMap = useMemo(() => {
-    if (!showColors || Object.keys(tiles).length === 0) return {};
+  const { colorMap, pathCount, maxPathLength } = useMemo(() => {
+    if (Object.keys(tiles).length === 0) return { colorMap: {}, pathCount: 0, maxPathLength: 0 };
     return traceAllPaths(tiles, tilePattern);
-  }, [tiles, showColors, tilePattern]);
+  }, [tiles, tilePattern]);
 
   function getCurveColors(tileKey) {
     if (!showColors) return null;
@@ -695,7 +785,8 @@ function App() {
       e.preventDefault();
       const nd = getTouchDist(e.touches), scale = pinchStart.current.dist / nd;
       const pVB = pinchStart.current.viewBox;
-      const nW = Math.max(150, Math.min(4000, pVB.w * scale)), nH = Math.max(150, Math.min(4000, pVB.h * scale));
+      const maxVB = unlimitedZoom ? MAX_VIEWBOX_UNLIMITED : MAX_VIEWBOX_NORMAL;
+      const nW = Math.max(150, Math.min(maxVB, pVB.w * scale)), nH = Math.max(150, Math.min(maxVB, pVB.h * scale));
       const svg = svgRef.current, rect = svg.getBoundingClientRect();
       const fx = (pinchStart.current.mid.x - rect.left) / rect.width, fy = (pinchStart.current.mid.y - rect.top) / rect.height;
       const px = pVB.x + fx * pVB.w, py = pVB.y + fy * pVB.h;
@@ -710,7 +801,7 @@ function App() {
     setViewBox({ ...viewBoxStart.current,
       x: viewBoxStart.current.x - dx * (viewBoxStart.current.w / rect.width),
       y: viewBoxStart.current.y - dy * (viewBoxStart.current.h / rect.height) });
-  }, []);
+  }, [unlimitedZoom]);
 
   const handlePointerUp = useCallback((e) => {
     if (e.type === "mouseup" && isTouchDevice.current) return;
@@ -728,11 +819,12 @@ function App() {
 
   const zoom = useCallback((f) => {
     setViewBox(vb => {
-      const nW = Math.max(150, Math.min(4000, vb.w * f)), nH = Math.max(150, Math.min(4000, vb.h * f));
+      const maxVB = unlimitedZoom ? MAX_VIEWBOX_UNLIMITED : MAX_VIEWBOX_NORMAL;
+      const nW = Math.max(150, Math.min(maxVB, vb.w * f)), nH = Math.max(150, Math.min(maxVB, vb.h * f));
       const cx = vb.x + vb.w / 2, cy = vb.y + vb.h / 2;
       return { x: cx - nW / 2, y: cy - nH / 2, w: nW, h: nH };
     });
-  }, []);
+  }, [unlimitedZoom]);
 
   const handleWheel = useCallback((e) => {
     e.preventDefault();
@@ -741,10 +833,11 @@ function App() {
     const fx = (e.clientX - rect.left) / rect.width, fy = (e.clientY - rect.top) / rect.height;
     setViewBox(vb => {
       const px = vb.x + fx * vb.w, py = vb.y + fy * vb.h;
-      const nW = Math.max(150, Math.min(4000, vb.w * f)), nH = Math.max(150, Math.min(4000, vb.h * f));
+      const maxVB = unlimitedZoom ? MAX_VIEWBOX_UNLIMITED : MAX_VIEWBOX_NORMAL;
+      const nW = Math.max(150, Math.min(maxVB, vb.w * f)), nH = Math.max(150, Math.min(maxVB, vb.h * f));
       return { x: px - fx * nW, y: py - fy * nH, w: nW, h: nH };
     });
-  }, []);
+  }, [unlimitedZoom]);
 
   const ghostCells = new Set();
   if (Object.keys(tiles).length === 0) {
@@ -774,13 +867,16 @@ function App() {
       "--btn-bg": "#1e2a4a", "--danger": "#c0392b",
     }}>
       <input ref={fileInputRef} type="file" accept=".json" style={{ display: "none" }} onChange={handleLoadJson} />
+      {showStartup && <StartupModal onClose={() => setShowStartup(false)} onOpenHelp={() => { setShowStartup(false); setShowHelp(true); }} />}
       {showHelp && <HelpScreen onClose={() => setShowHelp(false)} onShowChangelog={() => { setShowHelp(false); setShowChangelog(true); }} />}
       {showChangelog && <ChangelogScreen onClose={() => { setShowChangelog(false); setShowHelp(true); }} />}
       {showCredits && <CreditsScreen onClose={() => setShowCredits(false)} />}
       {showTileSettings && (
         <TileSettingsScreen pattern={tilePattern}
           onCancel={() => setShowTileSettings(false)}
-          onSave={(p) => { setTilePattern(p); setShowTileSettings(false); }} />
+          onSave={(p) => { setTilePattern(p); setShowTileSettings(false); }}
+          unlimitedZoom={unlimitedZoom}
+          onUnlimitedZoomChange={setUnlimitedZoom} />
       )}
       <div style={{ flex: 1, position: "relative" }}>
         <svg ref={svgRef}
@@ -810,8 +906,12 @@ function App() {
           })}
         </svg>
         <div style={{ position: "absolute", top: 12, left: 12, background: "var(--panel-bg)", color: "var(--text-dim)",
-          padding: "4px 10px", borderRadius: 20, fontSize: 13, border: "1px solid rgba(255,255,255,0.06)" }}>
-          {Object.keys(tiles).length} tile{Object.keys(tiles).length !== 1 ? "s" : ""}
+          padding: "4px 10px", borderRadius: 20, fontSize: 13, border: "1px solid rgba(255,255,255,0.06)",
+          display: "flex", flexDirection: "column", gap: 2 }}>
+          <span>{Object.keys(tiles).length} tile{Object.keys(tiles).length !== 1 ? "s" : ""}</span>
+          {pathCount > 0 && (
+            <span>{pathCount} path{pathCount !== 1 ? "s" : ""} · longest: {maxPathLength}</span>
+          )}
         </div>
         <div style={{ position: "absolute", top: 12, right: 12, display: "flex", flexDirection: "column", gap: 4 }}>
           <button onClick={() => zoom(0.7)} style={zoomBtnStyle}>+</button>
