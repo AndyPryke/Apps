@@ -25,19 +25,9 @@
 <script type="text/babel">
 const { useState, useEffect, useCallback, useRef, useMemo } = React;
 
-const APP_VERSION = "1.2";
+const APP_VERSION = "1.1";
 
 const CHANGELOG = [
-  {
-    version: "1.2",
-    date: "2026-06-02",
-    items: [
-      "Startup tip with link to help (can be disabled in settings).",
-      "Path count and longest path length shown on main screen.",
-      "Unlimited zoom out option (⚠️ advanced, tile design screen).",
-      "Link to prior versions from help screen.",
-    ],
-  },
   {
     version: "1.1",
     date: "2026-05-31",
@@ -46,6 +36,10 @@ const CHANGELOG = [
       "Help screen redesigned with flowing layout.",
       "Set a custom filename when saving.",
       "Fixed credits button cut off on narrow screens.",
+      "Startup tip modal with link to help, dismissible at startup.",
+      "Path count and longest path length shown on main screen.",
+      "Unlimited zoom out option in tile design screen (advanced).",
+      "Prior versions listed in changelog, linked from help.",
     ],
   },
   {
@@ -313,7 +307,7 @@ function HelpScreen({ onClose, onShowChangelog }) {
         <div style={{ color: "#8a8680", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Prior Versions</div>
         <div style={{ color: "#c8c4bf", fontSize: 14, lineHeight: 1.6, display: "flex", gap: 8 }}>
           <span style={{ color: "#e2b44d", flexShrink: 0 }}>•</span>
-          <a href="https://github.com/AndyPryke/Apps/blob/main/HexTiles/PriorVersions.md"
+          <a href="https://github.com/AndyPryke/Apps/blob/main/HexTiles/CHANGELOG.md"
             target="_blank" rel="noopener noreferrer"
             style={{ color: "#e2b44d" }}>Download older versions of Hex Tile Designer</a>
         </div>
@@ -595,7 +589,9 @@ function downloadBlob(blob, filename) {
 function savePng(tiles, colorMap, showColors, pattern, filename = "hex_tiles") {
   const svgStr = buildExportSvg(tiles, colorMap, showColors, pattern);
   const bbox = getTilesBBox(tiles);
-  const scale = 3, w = Math.round(bbox.w * scale), h = Math.round(bbox.h * scale);
+  const MAX_DIM = 4096;
+  const scale = Math.min(3, MAX_DIM / Math.max(bbox.w, bbox.h, 1));
+  const w = Math.round(bbox.w * scale), h = Math.round(bbox.h * scale);
   const img = new Image();
   const blob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
   const url = URL.createObjectURL(blob);
