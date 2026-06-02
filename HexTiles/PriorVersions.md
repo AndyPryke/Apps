@@ -13,12 +13,12 @@ To download a specific version:
 
 ## Version History
 
-| Version | Date       | Notes                                                           |
-|---------|------------|-----------------------------------------------------------------|
-| 1.2     | 2026-06-02 | Startup tip, path stats, unlimited zoom, prior versions link    |
-| 1.1     | 2026-05-31 | Line width control, improved help, custom save filename         |
-| 1.0     | 2026-05-30 | Initial release                                                 |
+| Version | Date       | Notes                                              |
+|---------|------------|----------------------------------------------------|
+| 1.2     | 2026-06-02 | Startup tip, path stats, unlimited zoom, prior versions link |
+| 1.1     | 2026-05-31 | Line width control, improved help, custom save filename |
+| 1.0     | 2026-05-30 | Initial release                                    |
 
 ## Save File Compatibility
 
-All versions can load save files created by any previous version.
+All versions can load save files from any previous version.
