@@ -68,6 +68,7 @@
     function App() {
       const [phase, setPhase] = useState('loading'); // loading | running | done | error
       const [output, setOutput] = useState('');
+      const [sessionInfo, setSessionInfo] = useState('');
       const [webR, setWebR] = useState(null);
 
       const [name, setName] = useState('');
@@ -85,6 +86,10 @@
               'paste(capture.output(cat("Hello, R!")), collapse = "\\n")'
             );
             setOutput(result);
+            const si = await wr.evalRString(
+              'paste(capture.output(sessionInfo()), collapse = "\\n")'
+            );
+            setSessionInfo(si);
             setPhase('done');
           })
           .catch((err) => {
@@ -163,6 +168,36 @@
           {ready && (
             <>
               <RConsole text={output} isError={phase === 'error'} />
+
+              {sessionInfo && (
+                <details style={{ marginTop: 12 }}>
+                  <summary style={{
+                    cursor: 'pointer',
+                    fontSize: '0.85rem',
+                    color: '#666',
+                    userSelect: 'none',
+                    padding: '4px 0',
+                  }}>
+                    R session info
+                  </summary>
+                  <pre style={{
+                    marginTop: 6,
+                    background: '#1e1e1e',
+                    color: '#9cdcfe',
+                    fontFamily: '"Courier New", Courier, monospace',
+                    fontSize: '0.8rem',
+                    lineHeight: 1.5,
+                    padding: '12px 16px',
+                    borderRadius: '6px',
+                    whiteSpace: 'pre',
+                    overflowX: 'auto',
+                    maxHeight: '260px',
+                    overflowY: 'auto',
+                  }}>
+                    {sessionInfo}
+                  </pre>
+                </details>
+              )}
 
               <div style={{ marginTop: 24, display: 'flex', gap: 8 }}>
                 <input
