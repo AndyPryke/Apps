@@ -4,22 +4,110 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>HelloR</title>
+
+  <!-- Expose a promise that resolves once webR is initialised -->
+  <script>
+    window._webRLoaded = new Promise(function(resolve, reject) {
+      window._webRReady = resolve;
+      window._webRFailed = reject;
+    });
+  </script>
+
+  <!-- Load and initialise webR as an ES module -->
+  <script type="module">
+    try {
+      const { WebR } = await import('https://webr.r-wasm.org/latest/webr.mjs');
+      const webR = new WebR();
+      await webR.init();
+      window._webRReady(webR);
+    } catch (err) {
+      window._webRFailed(err);
+    }
+  </script>
+
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { min-height: 100%; }
+    body {
+      background: #f0f2f5;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      padding: 40px 20px env(safe-area-inset-bottom);
+    }
+  </style>
 </head>
 <body>
   <div id="root"></div>
   <script type="text/babel">
-    const { useState, useEffect, useRef, useCallback } = React;
-
+    const { useState, useEffect } = React;
     const APP_VERSION = "0.1";
 
-    function App() {
-      return <div>HelloR v{APP_VERSION}</div>;
+    function RConsole({ text, isError }) {
+      return (
+        <pre style={{
+          background: '#1e1e1e',
+          color: isError ? '#ff6b6b' : '#4ec9b0',
+          fontFamily: '"Courier New", Courier, monospace',
+          fontSize: '1rem',
+          lineHeight: 1.6,
+          padding: '14px 18px',
+          borderRadius: '6px',
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-word',
+        }}>
+          {text}
+        </pre>
+      );
     }
 
-    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    function App() {
+      const [phase, setPhase] = useState('loading'); // loading | running | done | error
+      const [output, setOutput] = useState('');
+
+      useEffect(() => {
+        window._webRLoaded
+          .then(async (webR) => {
+            setPhase('running');
+            const result = await webR.evalRString(
+              'paste(capture.output(cat("Hello, R!")), collapse = "\\n")'
+            );
+            setOutput(result);
+            setPhase('done');
+          })
+          .catch((err) => {
+            setOutput(err.message || String(err));
+            setPhase('error');
+          });
+      }, []);
+
+      return (
+        <div style={{ width: '100%', maxWidth: 560 }}>
+          <h1 style={{ fontSize: '1.5rem', marginBottom: 20, color: '#222' }}>
+            HelloR{' '}
+            <span style={{ fontSize: '0.75rem', color: '#999', fontWeight: 'normal' }}>
+              v{APP_VERSION}
+            </span>
+          </h1>
+
+          {(phase === 'loading' || phase === 'running') && (
+            <p style={{ color: '#888', fontSize: '0.95rem' }}>
+              {phase === 'loading' ? 'Loading R…' : 'Running R…'}
+            </p>
+          )}
+
+          {(phase === 'done' || phase === 'error') && (
+            <RConsole text={output} isError={phase === 'error'} />
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
   </script>
 </body>
 </html>
