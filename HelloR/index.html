@@ -190,6 +190,26 @@
             </span>
           </h1>
 
+          <div style={{
+            background: '#fff',
+            border: '1px solid #dde3ea',
+            borderLeft: '4px solid #007bff',
+            borderRadius: '6px',
+            padding: '14px 18px',
+            marginBottom: 24,
+            fontSize: '0.9rem',
+            color: '#444',
+            lineHeight: 1.6,
+          }}>
+            <strong>HelloR</strong> is a "Hello World" example of running R directly
+            in the browser using <a href="https://docs.r-wasm.org/webr/latest/" target="_blank"
+            rel="noopener noreferrer" style={{ color: '#007bff' }}>webR</a> (R compiled
+            to WebAssembly). There is no server — R runs entirely on your device. The
+            app is hosted as a static page on{' '}
+            <a href="https://andypryke.github.io/Apps/HelloR/" target="_blank"
+            rel="noopener noreferrer" style={{ color: '#007bff' }}>GitHub Pages</a>.
+          </div>
+
           {!ready && (
             <p style={{ color: '#888', fontSize: '0.95rem' }}>
               {phase === 'loading'    ? 'Loading R…' :
