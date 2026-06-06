@@ -66,7 +66,7 @@
     }
 
     function App() {
-      const [phase, setPhase] = useState('loading'); // loading | running | done | error
+      const [phase, setPhase] = useState('loading'); // loading | installing | running | done | error
       const [output, setOutput] = useState('');
       const [sessionInfo, setSessionInfo] = useState('');
       const [webR, setWebR] = useState(null);
@@ -76,11 +76,15 @@
       const [nameOutput, setNameOutput] = useState('');
       const [plotPhase, setPlotPhase] = useState('idle'); // idle | running | done | error
       const [plotUrl, setPlotUrl] = useState(null);
+      const [ggplotPhase, setGgplotPhase] = useState('idle'); // idle | running | done | error
+      const [ggplotUrl, setGgplotUrl] = useState(null);
 
       useEffect(() => {
         window._webRLoaded
           .then(async (wr) => {
             setWebR(wr);
+            setPhase('installing');
+            await wr.evalRVoid('webr::install("GGally", quiet = TRUE)');
             setPhase('running');
             const result = await wr.evalRString(
               'paste(capture.output(cat("Hello, R!")), collapse = "\\n")'
@@ -109,6 +113,9 @@
         setPlotPhase('idle');
         if (plotUrl) URL.revokeObjectURL(plotUrl);
         setPlotUrl(null);
+        setGgplotPhase('idle');
+        if (ggplotUrl) URL.revokeObjectURL(ggplotUrl);
+        setGgplotUrl(null);
 
         // Step 1: greeting (fast)
         try {
@@ -146,6 +153,30 @@
           console.error('Plot generation failed:', err);
           setPlotPhase('error');
         }
+
+        // Step 3: ggplot2 pairs plot
+        setGgplotPhase('running');
+        try {
+          await webR.evalRVoid(`
+            library(GGally)
+            p <- ggpairs(
+              iris,
+              columns = 1:4,
+              aes(colour = Species),
+              title = paste0("ggplot2 — specially for ", "${safe}")
+            )
+            png('/tmp/iris_ggplot.png', width = 800, height = 700, bg = 'white')
+            print(p)
+            dev.off()
+          `);
+          const ggData = await webR.FS.readFile('/tmp/iris_ggplot.png');
+          const ggBlob = new Blob([ggData], { type: 'image/png' });
+          setGgplotUrl(URL.createObjectURL(ggBlob));
+          setGgplotPhase('done');
+        } catch (err) {
+          console.error('ggplot2 plot failed:', err);
+          setGgplotPhase('error');
+        }
       }
 
       const ready = phase === 'done' || phase === 'error';
@@ -161,7 +192,9 @@
 
           {!ready && (
             <p style={{ color: '#888', fontSize: '0.95rem' }}>
-              {phase === 'loading' ? 'Loading R…' : 'Running R…'}
+              {phase === 'loading'    ? 'Loading R…' :
+               phase === 'installing' ? 'Installing ggplot2 packages…' :
+                                        'Running R…'}
             </p>
           )}
 
@@ -268,6 +301,33 @@
                   {plotPhase === 'error' && (
                     <p style={{ color: '#ff6b6b', marginTop: 12, fontSize: '0.9rem' }}>
                       Plot generation failed.
+                    </p>
+                  )}
+
+                  {ggplotPhase === 'running' && (
+                    <p style={{ color: '#888', marginTop: 12, fontSize: '0.95rem' }}>
+                      Generating ggplot2 plot…
+                    </p>
+                  )}
+
+                  {ggplotPhase === 'done' && ggplotUrl && (
+                    <img
+                      src={ggplotUrl}
+                      alt="Iris ggplot2 pairs plot"
+                      style={{
+                        display: 'block',
+                        width: '100%',
+                        height: 'auto',
+                        marginTop: 12,
+                        borderRadius: '6px',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+                      }}
+                    />
+                  )}
+
+                  {ggplotPhase === 'error' && (
+                    <p style={{ color: '#ff6b6b', marginTop: 12, fontSize: '0.9rem' }}>
+                      ggplot2 plot failed.
                     </p>
                   )}
                 </div>
