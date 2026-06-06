@@ -44,7 +44,7 @@
 <body>
   <div id="root"></div>
   <script type="text/babel">
-    const { useState, useEffect } = React;
+    const { useState, useEffect, useRef } = React;
     const APP_VERSION = "0.1";
 
     function RConsole({ text, isError }) {
@@ -68,12 +68,20 @@
     function App() {
       const [phase, setPhase] = useState('loading'); // loading | running | done | error
       const [output, setOutput] = useState('');
+      const [webR, setWebR] = useState(null);
+
+      const [name, setName] = useState('');
+      const [namePhase, setNamePhase] = useState('idle'); // idle | running | done | error
+      const [nameOutput, setNameOutput] = useState('');
+
+      const inputRef = useRef(null);
 
       useEffect(() => {
         window._webRLoaded
-          .then(async (webR) => {
+          .then(async (wr) => {
+            setWebR(wr);
             setPhase('running');
-            const result = await webR.evalRString(
+            const result = await wr.evalRString(
               'paste(capture.output(cat("Hello, R!")), collapse = "\\n")'
             );
             setOutput(result);
@@ -85,6 +93,29 @@
           });
       }, []);
 
+      async function sayHello() {
+        if (!webR || !name.trim() || namePhase === 'running') return;
+        setNamePhase('running');
+        setNameOutput('');
+        try {
+          const safe = name.trim().replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+          const result = await webR.evalRString(
+            `paste(capture.output(cat(paste0("Hello, ", "${safe}", "!"))), collapse = "\\n")`
+          );
+          setNameOutput(result);
+          setNamePhase('done');
+        } catch (err) {
+          setNameOutput(err.message || String(err));
+          setNamePhase('error');
+        }
+      }
+
+      function handleKeyDown(e) {
+        if (e.key === 'Enter') sayHello();
+      }
+
+      const ready = phase === 'done' || phase === 'error';
+
       return (
         <div style={{ width: '100%', maxWidth: 560 }}>
           <h1 style={{ fontSize: '1.5rem', marginBottom: 20, color: '#222' }}>
@@ -94,14 +125,59 @@
             </span>
           </h1>
 
-          {(phase === 'loading' || phase === 'running') && (
+          {!ready && (
             <p style={{ color: '#888', fontSize: '0.95rem' }}>
               {phase === 'loading' ? 'Loading R…' : 'Running R…'}
             </p>
           )}
 
-          {(phase === 'done' || phase === 'error') && (
-            <RConsole text={output} isError={phase === 'error'} />
+          {ready && (
+            <>
+              <RConsole text={output} isError={phase === 'error'} />
+
+              <div style={{ marginTop: 24, display: 'flex', gap: 8 }}>
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Enter your name"
+                  disabled={namePhase === 'running'}
+                  style={{
+                    flex: 1,
+                    padding: '8px 12px',
+                    fontSize: '1rem',
+                    border: '1px solid #ccc',
+                    borderRadius: '4px',
+                    outline: 'none',
+                    background: namePhase === 'running' ? '#f9f9f9' : '#fff',
+                  }}
+                />
+                <button
+                  onClick={sayHello}
+                  disabled={namePhase === 'running' || !name.trim()}
+                  style={{
+                    padding: '8px 16px',
+                    fontSize: '1rem',
+                    background: (namePhase === 'running' || !name.trim()) ? '#b0b8c4' : '#007bff',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: (namePhase === 'running' || !name.trim()) ? 'not-allowed' : 'pointer',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {namePhase === 'running' ? 'Running…' : 'Say Hello'}
+                </button>
+              </div>
+
+              {(namePhase === 'done' || namePhase === 'error') && (
+                <div style={{ marginTop: 10 }}>
+                  <RConsole text={nameOutput} isError={namePhase === 'error'} />
+                </div>
+              )}
+            </>
           )}
         </div>
       );
