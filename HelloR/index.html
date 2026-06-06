@@ -44,7 +44,7 @@
 <body>
   <div id="root"></div>
   <script type="text/babel">
-    const { useState, useEffect, useRef } = React;
+    const { useState, useEffect } = React;
     const APP_VERSION = "0.1";
 
     function RConsole({ text, isError }) {
@@ -73,8 +73,8 @@
       const [name, setName] = useState('');
       const [namePhase, setNamePhase] = useState('idle'); // idle | running | done | error
       const [nameOutput, setNameOutput] = useState('');
-
-      const inputRef = useRef(null);
+      const [plotPhase, setPlotPhase] = useState('idle'); // idle | running | done | error
+      const [plotUrl, setPlotUrl] = useState(null);
 
       useEffect(() => {
         window._webRLoaded
@@ -95,29 +95,58 @@
 
       async function sayHello() {
         if (!webR || !name.trim() || namePhase === 'running') return;
+
+        const safe = name.trim().replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+
+        // Reset state
         setNamePhase('running');
         setNameOutput('');
+        setPlotPhase('idle');
+        if (plotUrl) URL.revokeObjectURL(plotUrl);
+        setPlotUrl(null);
+
+        // Step 1: greeting (fast)
         try {
-          const safe = name.trim().replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-          const result = await webR.evalRString(
+          const greeting = await webR.evalRString(
             `paste(capture.output(cat(paste0("Hello, ", "${safe}", "!"))), collapse = "\\n")`
           );
-          setNameOutput(result);
+          setNameOutput(greeting);
           setNamePhase('done');
         } catch (err) {
           setNameOutput(err.message || String(err));
           setNamePhase('error');
+          return;
         }
-      }
 
-      function handleKeyDown(e) {
-        if (e.key === 'Enter') sayHello();
+        // Step 2: pairs plot (slower — renders PNG to webR's virtual filesystem)
+        setPlotPhase('running');
+        try {
+          await webR.evalRVoid(`
+            png('/tmp/iris_plot.png', width = 800, height = 600, bg = 'white')
+            sp_colors <- c("#e74c3c", "#3498db", "#2ecc71")
+            pairs(
+              iris[, 1:4],
+              col  = sp_colors[as.integer(iris$Species)],
+              pch  = 19,
+              cex  = 0.7,
+              main = paste0("This pairplot is specially for ", "${safe}")
+            )
+            dev.off()
+          `);
+          const imgData = await webR.FS.readFile('/tmp/iris_plot.png');
+          const blob = new Blob([imgData], { type: 'image/png' });
+          setPlotUrl(URL.createObjectURL(blob));
+          setPlotPhase('done');
+        } catch (err) {
+          console.error('Plot generation failed:', err);
+          setPlotPhase('error');
+        }
       }
 
       const ready = phase === 'done' || phase === 'error';
 
       return (
-        <div style={{ width: '100%', maxWidth: 560 }}>
+        <div style={{ width: '100%', maxWidth: 680 }}>
           <h1 style={{ fontSize: '1.5rem', marginBottom: 20, color: '#222' }}>
             HelloR{' '}
             <span style={{ fontSize: '0.75rem', color: '#999', fontWeight: 'normal' }}>
@@ -137,11 +166,10 @@
 
               <div style={{ marginTop: 24, display: 'flex', gap: 8 }}>
                 <input
-                  ref={inputRef}
                   type="text"
                   value={name}
                   onChange={e => setName(e.target.value)}
-                  onKeyDown={handleKeyDown}
+                  onKeyDown={e => e.key === 'Enter' && sayHello()}
                   placeholder="Enter your name"
                   disabled={namePhase === 'running'}
                   style={{
@@ -172,9 +200,40 @@
                 </button>
               </div>
 
-              {(namePhase === 'done' || namePhase === 'error') && (
-                <div style={{ marginTop: 10 }}>
+              {namePhase === 'running' && !nameOutput && (
+                <p style={{ color: '#888', marginTop: 12, fontSize: '0.95rem' }}>Running…</p>
+              )}
+
+              {nameOutput && (
+                <div style={{ marginTop: 12 }}>
                   <RConsole text={nameOutput} isError={namePhase === 'error'} />
+
+                  {plotPhase === 'running' && (
+                    <p style={{ color: '#888', marginTop: 12, fontSize: '0.95rem' }}>
+                      Generating plot…
+                    </p>
+                  )}
+
+                  {plotPhase === 'done' && plotUrl && (
+                    <img
+                      src={plotUrl}
+                      alt="Iris pairs plot"
+                      style={{
+                        display: 'block',
+                        width: '100%',
+                        height: 'auto',
+                        marginTop: 12,
+                        borderRadius: '6px',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+                      }}
+                    />
+                  )}
+
+                  {plotPhase === 'error' && (
+                    <p style={{ color: '#ff6b6b', marginTop: 12, fontSize: '0.9rem' }}>
+                      Plot generation failed.
+                    </p>
+                  )}
                 </div>
               )}
             </>
