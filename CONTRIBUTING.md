@@ -45,7 +45,7 @@ Minimal starting template:
   <script type="text/babel">
     const { useState, useEffect, useRef, useCallback } = React;
 
-    const APP_VERSION = "1.0";
+    const APP_VERSION = "0.1";
 
     function App() {
       return <div>ExampleProject v{APP_VERSION}</div>;
@@ -72,7 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ```
 
-**`ROADMAP.md`** — List the features planned for v1.0 and beyond, with rough priority. Keep it short and current.
+**`ROADMAP.md`** — List the features planned for v0.1 and beyond, with rough priority. Keep it short and current.
 
 ### 3. Add the app to the landing page
 
@@ -84,25 +84,27 @@ Once the skeleton is in place, open a PR from `exampleproject/setup` → `main` 
 
 ---
 
-## Working Toward the First Release (v1.0)
+## Development Releases (v0.x)
+
+Versions `0.x` are for initial development. No compatibility promises are made — anything can change between `0.x` releases.
 
 ### 5. Create a release branch
 
 ```
 git checkout main
-git checkout -b exampleproject/v1.0
+git checkout -b exampleproject/v0.1
 ```
 
-This is the integration branch for all v1.0 work.
+This is the integration branch for all v0.1 work.
 
 ### 6. Cut feature branches from the release branch
 
 ```
-git checkout exampleproject/v1.0
+git checkout exampleproject/v0.1
 git checkout -b exampleproject/my-feature
 ```
 
-Work on the feature, then open a PR from `exampleproject/my-feature` → `exampleproject/v1.0` and merge it using a **squash commit**.
+Work on the feature, then open a PR from `exampleproject/my-feature` → `exampleproject/v0.1` and merge it using a **squash commit**.
 
 Repeat for each feature.
 
@@ -110,27 +112,37 @@ Repeat for each feature.
 
 Before tagging:
 
-1. Update `APP_VERSION` in `ExampleProject/index.html` to `"1.0"`.
-2. Fill in `CHANGELOG.md` — replace `[Unreleased]` with `[1.0] - YYYY-MM-DD` and list what changed.
+1. Update `APP_VERSION` in `ExampleProject/index.html` to `"0.1"`.
+2. Fill in `CHANGELOG.md` — replace `[Unreleased]` with `[0.1] - YYYY-MM-DD` and list what changed.
 3. Update `ROADMAP.md` — move completed items, add anything new.
-4. Open a final PR from `exampleproject/v1.0` → `main` and merge it using a **merge commit** (not squash, so full history is preserved).
+4. Open a final PR from `exampleproject/v0.1` → `main` and merge it using a **merge commit** (not squash, so full history is preserved).
 
 ### 8. Tag the release
 
 ```
 git checkout main
 git pull
-git tag exampleproject/v1.0.0
-git push origin exampleproject/v1.0.0
+git tag exampleproject/v0.1.0
+git push origin exampleproject/v0.1.0
 ```
 
-Then create a GitHub Release pointing at that tag. The release title should be the app name and version (e.g. `ExampleProject v1.0.0`); the body should paste the relevant section from `CHANGELOG.md`.
+Then create a GitHub Release pointing at that tag. The release title should be the app name and version (e.g. `ExampleProject v0.1.0`); the body should paste the relevant section from `CHANGELOG.md`.
+
+Continue this pattern for `v0.2`, `v0.3`, etc. until the app is stable enough for a `v1.0` release.
+
+---
+
+## Graduating to v1.0
+
+`v1.0` signals the first stable public release — the app is feature-complete enough that you're willing to make backwards-compatibility promises going forward.
+
+Follow the same release branch process, but name the branch `exampleproject/v1.0` and update `APP_VERSION` to `"1.0"`. Tag as `exampleproject/v1.0.0`.
 
 ---
 
 ## Working on Subsequent Releases (v1.1, v1.2, …)
 
-Follow the same pattern as above, substituting the new version number.
+Follow the same pattern as the initial release, substituting the new version number.
 
 Branch naming:
 
@@ -151,7 +163,8 @@ Versions follow [Semantic Versioning](https://semver.org/) (`MAJOR.MINOR.PATCH`)
 
 | Increment | When |
 |---|---|
-| MAJOR | Breaking change — e.g. old save files can no longer load |
+| 0.x | Initial development — no compatibility promises |
+| MAJOR (1+) | Breaking change — e.g. old save files can no longer load |
 | MINOR | New features, fully backwards-compatible |
 | PATCH | Bug fixes, backwards-compatible |
 
