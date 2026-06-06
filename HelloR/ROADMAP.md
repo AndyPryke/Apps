@@ -2,4 +2,5 @@
 
 ## v0.1
 
-- Initial release.
+- [x] Load webR and run `cat("Hello, R!")` in the browser, displaying the output
+- [x] Name input: user enters their name and R greets them by name
