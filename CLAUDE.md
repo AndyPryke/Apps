@@ -34,6 +34,21 @@ Target modern evergreen browsers — current and recent versions of Chrome, Fire
 - Always handle both touch and mouse input; never assume one or the other
 - Use `env(safe-area-inset-*)` for layout that may overlap mobile notches or home bars
 
+## After Every Push
+
+After every `git push`, output a preview URL for the relevant `index.html` on the branch that was just pushed. Use the format:
+
+```
+https://raw.githack.com/AndyPryke/Apps/{branch}/AppName/index.html
+```
+
+URL-encode any slashes in the branch name (e.g. `hellor/v0.1` → `hellor%2Fv0.1`).
+
+Example — `main` branch, HelloR app:
+```
+https://raw.githack.com/AndyPryke/Apps/main/HelloR/index.html
+```
+
 ## Orientation Support
 
 All apps must be fully functional in both **portrait** and **landscape** orientations.
